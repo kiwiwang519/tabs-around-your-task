@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tabs around your task Preview</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <script>
+      const now = Date.now();
+      const previewTabs = [
+        { id: 1, windowId: 1, title: "Inbox - Work", url: "https://mail.google.com/mail/u/0/#inbox", favIconUrl: "https://www.google.com/s2/favicons?domain=mail.google.com&sz=64" },
+        { id: 2, windowId: 1, title: "GitHub Pull Requests", url: "https://github.com/pulls", favIconUrl: "https://www.google.com/s2/favicons?domain=github.com&sz=64" },
+        { id: 3, windowId: 1, title: "GitHub tab-out README", url: "https://github.com/zarazhangrui/tab-out/blob/main/README.md", favIconUrl: "https://www.google.com/s2/favicons?domain=github.com&sz=64" },
+        { id: 4, windowId: 2, title: "Local app", url: "http://localhost:5173/dashboard" }
+      ];
+
+      window.chrome = {
+        runtime: {
+          sendMessage: async () => ({ ok: true }),
+          getURL: (path) => `chrome-extension://preview/${path}`
+        },
+        storage: {
+          local: {
+            _store: {
+              tabMeta: {
+                1: { lastOpenedAt: now - 4 * 60 * 1000 },
+                2: { lastOpenedAt: now - 45 * 60 * 1000 },
+                3: { lastOpenedAt: now - 2 * 60 * 60 * 1000 },
+                4: { lastOpenedAt: now - 26 * 60 * 60 * 1000 }
+              },
+              tasks: [
+                {
+                  id: "preview-1",
+                  name: "Launch notes",
+                  items: [
+                    { type: "site", label: "github.com", tabIds: [2, 3] },
+                    { type: "tab", label: "Inbox - Work", tabIds: [1] }
+                  ]
+                }
+              ]
+            },
+            get: async function(keys) {
+              if (Array.isArray(keys)) {
+                return keys.reduce((result, key) => ({ ...result, [key]: this._store[key] }), {});
+              }
+
+              return { [keys]: this._store[keys] };
+            },
+            set: async function(values) {
+              this._store = { ...this._store, ...values };
+            }
+          }
+        },
+        tabs: {
+          query: async () => previewTabs,
+          update: async () => {},
+          remove: async (ids) => {
+            const removeIds = Array.isArray(ids) ? ids : [ids];
+            for (const id of removeIds) {
+              const index = previewTabs.findIndex((tab) => tab.id === id);
+              if (index >= 0) previewTabs.splice(index, 1);
+            }
+          },
+          move: async () => {},
+          onCreated: { addListener: () => {} },
+          onRemoved: { addListener: () => {} },
+          onUpdated: { addListener: () => {} },
+          onActivated: { addListener: () => {} }
+        },
+        windows: {
+          update: async () => {},
+          onFocusChanged: { addListener: () => {} }
+        }
+      };
+    </script>
+
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <h1>Tabs around your task</h1>
+        </div>
+        <div class="toolbar">
+          <button id="refreshButton" type="button" title="Refresh tabs" aria-label="Refresh tabs">↻</button>
+        </div>
+      </header>
+
+      <div class="workspace-grid">
+        <section class="main-column">
+          <section id="groupList" class="group-list" aria-live="polite"></section>
+          <section id="emptyState" class="empty-state" hidden>
+            <h2>No matching tabs</h2>
+            <p>Try a different search term or refresh the dashboard.</p>
+          </section>
+        </section>
+
+        <aside class="task-sidebar" aria-label="Tasks">
+          <form id="taskForm" class="task-form">
+            <h2 class="task-panel-title">My tasks</h2>
+            <button type="submit" title="Create task" aria-label="Create task">+</button>
+          </form>
+          <section id="taskList" class="task-list" aria-live="polite"></section>
+          <section id="taskEmptyState" class="task-empty">
+            <h2>No tasks</h2>
+          </section>
+        </aside>
+      </div>
+      <div id="celebration" class="celebration" aria-live="polite" hidden>
+        <div class="spark spark-one"></div>
+        <div class="spark spark-two"></div>
+        <div class="spark spark-three"></div>
+        <p>Task complete</p>
+      </div>
+    </main>
+
+    <template id="groupTemplate">
+      <article class="site-group">
+        <header class="group-header">
+          <div class="site-mark" aria-hidden="true"></div>
+          <div class="site-heading">
+            <h2></h2>
+            <p></p>
+          </div>
+          <span class="group-count"></span>
+          <button class="icon-button close-site" type="button" title="Close site tabs" aria-label="Close site tabs">×</button>
+        </header>
+        <ul class="tab-list"></ul>
+      </article>
+    </template>
+
+    <template id="tabTemplate">
+      <li class="tab-row">
+        <button class="tab-main" type="button"></button>
+        <time></time>
+        <button class="icon-button close-tab" type="button" title="Close tab" aria-label="Close tab">×</button>
+      </li>
+    </template>
+
+    <template id="taskTemplate">
+      <article class="task-card">
+        <header class="task-header">
+          <input class="task-name-field" type="text" maxlength="64" aria-label="Task name">
+          <span></span>
+          <button class="complete-task" type="button" title="Complete task" aria-label="Complete task">✓</button>
+        </header>
+        <ul class="task-items"></ul>
+      </article>
+    </template>
+
+    <template id="taskItemTemplate">
+      <li class="task-item">
+        <span class="task-item-type"></span>
+        <span class="task-item-name"></span>
+        <button class="task-item-close" type="button" title="Close task tabs" aria-label="Close task tabs">×</button>
+      </li>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>

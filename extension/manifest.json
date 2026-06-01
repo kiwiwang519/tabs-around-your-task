@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Tabs around your task",
+  "description": "Understand open Chrome tabs by website and organize them around active tasks.",
+  "version": "0.1.0",
+  "permissions": ["storage", "tabs"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "chrome_url_overrides": {
+    "newtab": "newtab.html"
+  }
+}
